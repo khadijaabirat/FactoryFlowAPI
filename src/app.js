@@ -1,15 +1,17 @@
 const express = require('express');
-const dotenv = require('dotenv');
 const cors = require('cors');
-
-dotenv.config();
+const apiRoutes = require('./routes');
+const errorHandler = require('./middlewares/errorHandler');
+const notFoundHandler = require('./middlewares/notFoundHandler');
 
 const app = express();
 
+// Middlewares de base
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Endpoint de santé / vérification du serveur
+// Endpoint de santé du service
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -19,12 +21,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Montage des routes sous /api
+app.use('/api', apiRoutes);
 
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`[FactoryFlow API] Serveur démarré sur le port ${PORT}`);
-  });
-}
+// Gestion des routes non trouvées (404)
+app.use(notFoundHandler);
+
+// Middleware centralisé de gestion des erreurs
+app.use(errorHandler);
 
 module.exports = app;
