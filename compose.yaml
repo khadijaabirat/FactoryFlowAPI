@@ -1,0 +1,58 @@
+services:
+  # Service Backend (API Express Node.js)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: factoryflow_api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://mongodb:27017/factoryflow?replicaSet=rs0&directConnection=true
+      - JWT_SECRET=${JWT_SECRET:-factoryflow_jwt_secret_dev_key_2026}
+      - NODE_ENV=development
+    volumes:
+      # Hot-reloading : les modifications locales sont reflétées en direct dans le conteneur
+      - .:/app
+      # Conservation des node_modules internes au conteneur
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: npm run dev
+
+  # Service Base de données (MongoDB 7.0 avec Replica Set pour supporter les transactions ACID)
+  mongodb:
+    image: mongo:7.0
+    container_name: factoryflow_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    # Démarrage avec réplica set pour activer le moteur de transactions Mongoose
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    volumes:
+      # Volume persistant : les données persistent après arrêt et redémarrage
+      - mongo_data:/data/db
+    healthcheck:
+      test: >
+        mongosh --port 27017 --quiet --eval "
+          try {
+            rs.status().ok
+          } catch(e) {
+            rs.initiate({
+              _id: 'rs0',
+              members: [{ _id: 0, host: 'mongodb:27017' }]
+            }).ok
+          }
+        "
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 5s
+
+# Volumes nommés persistants
+volumes:
+  mongo_data:
+    driver: local
