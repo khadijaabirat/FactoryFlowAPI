@@ -6,12 +6,10 @@ const notFoundHandler = require('./middlewares/notFoundHandler');
 
 const app = express();
 
-// Middlewares de base
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Endpoint de santé du service
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -21,13 +19,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Montage des routes sous /api
 app.use('/api', apiRoutes);
 
-// Gestion des routes non trouvées (404)
 app.use(notFoundHandler);
 
-// Middleware centralisé de gestion des erreurs
 app.use(errorHandler);
 
 module.exports = app;

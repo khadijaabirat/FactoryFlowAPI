@@ -3,16 +3,27 @@ const env = require('./env');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(env.mongoUri);
-    console.log(`[MongoDB] Connecté avec succès : ${conn.connection.host}`);
+    const conn = await mongoose.connect(env.MONGO_URI);
+    console.log(`[Database] Connecté à MongoDB avec succès : ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error(`[MongoDB] Erreur de connexion : ${error.message}`);
-    if (env.nodeEnv !== 'test') {
+    console.error(`[Database] Erreur de connexion MongoDB : ${error.message}`);
+    if (process.env.NODE_ENV !== 'test') {
       process.exit(1);
     }
-    throw error;
   }
 };
 
-module.exports = connectDB;
+const disconnectDB = async () => {
+  try {
+    await mongoose.connection.close();
+    console.log('[Database] Déconnecté de MongoDB');
+  } catch (error) {
+    console.error(`[Database] Erreur de déconnexion MongoDB : ${error.message}`);
+  }
+};
+
+module.exports = {
+  connectDB,
+  disconnectDB
+};
