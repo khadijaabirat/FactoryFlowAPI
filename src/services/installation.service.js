@@ -9,9 +9,7 @@ class InstallationService{
     async getInstallationStatus() {
         return await this.BooleanInstalation();
     }
-    async getInstalationStatut() {
-        return await this.BooleanInstalation();
-    }
+ 
     async instalationApplication(adminData){
         const isInstalled = await this.BooleanInstalation();
         if(isInstalled){

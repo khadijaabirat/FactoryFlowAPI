@@ -1,10 +1,10 @@
 const express=require('express');
 const router=express.Router();
-const installationController= require('../controllers/installation.controller');
+const installationController= require('../controllers/instalation.conroller');
 
 
 router.get('/status',installationController.getStatus);
-router.post('/',installationController.installApplication);
+router.post('/',installationController.instalationApp);
 
 
 module.exports=router;
