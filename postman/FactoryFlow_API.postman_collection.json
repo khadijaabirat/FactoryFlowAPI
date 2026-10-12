@@ -1,0 +1,725 @@
+{
+  "info": {
+    "_postman_id": "factoryflow-api-collection-v1",
+    "name": "FactoryFlow API",
+    "description": "Collection complète de l'API FactoryFlow (Gestion des ordres de fabrication et stocks de matières premières - Usine Safi)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health Check",
+      "item": [
+        {
+          "name": "Health Check (Root)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5001",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Health Check (/api/health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Installation Initiale (FA-29)",
+      "item": [
+        {
+          "name": "Vérifier le statut d'installation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/installation/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["installation", "status"]
+            }
+          }
+        },
+        {
+          "name": "Installer l'application (Créer le premier Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Principal\",\n  \"email\": \"admin@factoryflow.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/installation",
+              "host": ["{{baseUrl}}"],
+              "path": ["installation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentification & Profil (FA-33)",
+      "item": [
+        {
+          "name": "Connexion (Login) -> Auto-sauvegarde du Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    var token = json.token || (json.data && json.data.token);",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('token', token);",
+                  "        console.log('Token JWT sauvegardé avec succès:', token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@factoryflow.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Consulter mon profil (GET /api/auth/profile)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Gestion des Utilisateurs (FA-37 - Admin)",
+      "item": [
+        {
+          "name": "Créer un utilisateur (Opérateur ou Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Operateur Ahmed\",\n  \"email\": \"ahmed@factoryflow.com\",\n  \"password\": \"Operator123!\",\n  \"role\": \"OPERATOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        },
+        {
+          "name": "Lister tous les utilisateurs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Matières Premières (FA-40)",
+      "item": [
+        {
+          "name": "Créer une matière première",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"MP-ACIER-01\",\n  \"name\": \"Acier Inoxydable 304\",\n  \"unit\": \"kg\",\n  \"minThreshold\": 50,\n  \"currentStock\": 200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials"]
+            }
+          }
+        },
+        {
+          "name": "Lister les matières premières",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials"]
+            }
+          }
+        },
+        {
+          "name": "Alertes stock faible (Rupture imminente)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials/alerts/low-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials", "alerts", "low-stock"]
+            }
+          }
+        },
+        {
+          "name": "Consulter une matière première par ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DE_LA_MATIERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mettre à jour une matière première",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acier Inoxydable 304 Qualité Supérieure\",\n  \"minThreshold\": 60\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DE_LA_MATIERE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Supprimer une matière première",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/raw-materials/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["raw-materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DE_LA_MATIERE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Mouvements de Stock (FA-45)",
+      "item": [
+        {
+          "name": "Enregistrer un mouvement de stock (Entrée / Sortie)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rawMaterialId\": \"ID_DE_LA_MATIERE\",\n  \"type\": \"ENTRY\",\n  \"quantity\": 100,\n  \"reason\": \"Réception commande fournisseur\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock-movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock-movements"]
+            }
+          }
+        },
+        {
+          "name": "Historique des mouvements de stock",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stock-movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock-movements"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Produits Finis (FA-49)",
+      "item": [
+        {
+          "name": "Créer un produit fini",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"PROD-VANN-50\",\n  \"name\": \"Vanne Industrielle 50mm\",\n  \"description\": \"Vanne haute pression usinée\",\n  \"category\": \"Robinetterie\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Lister les produits finis",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Consulter un produit par ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DU_PRODUIT"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Nomenclature BOM (FA-52)",
+      "item": [
+        {
+          "name": "Définir la nomenclature (BOM) d'un produit",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"rawMaterialId\": \"ID_MATIERE_ACIER\",\n      \"quantity\": 2.5\n    },\n    {\n      \"rawMaterialId\": \"ID_MATIERE_JOINT\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/bom",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":id", "bom"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DU_PRODUIT"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consulter la nomenclature (BOM) d'un produit",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/:id/bom",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":id", "bom"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DU_PRODUIT"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Ordres de Fabrication (FA-54)",
+      "item": [
+        {
+          "name": "Créer un Ordre de Fabrication (OF)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderNumber\": \"OF-2026-001\",\n  \"productId\": \"ID_DU_PRODUIT\",\n  \"plannedQuantity\": 10,\n  \"startDate\": \"2026-10-15T08:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/manufacturing-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["manufacturing-orders"]
+            }
+          }
+        },
+        {
+          "name": "Lister les Ordres de Fabrication (OF)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/manufacturing-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["manufacturing-orders"]
+            }
+          }
+        },
+        {
+          "name": "Consulter un OF par ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/manufacturing-orders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["manufacturing-orders", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DE_L_OF"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Changer le statut d'un OF (Workflow & Déduction de Stock)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/manufacturing-orders/:id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["manufacturing-orders", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ID_DE_L_OF"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
