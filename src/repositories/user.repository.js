@@ -17,5 +17,9 @@ class UserRepository {
         const user = await User.findById(id);
         return user;
     }
+    async findAll(){
+     const users = await User.find({},'-password'); 
+     return users;
+    }
 }
 module.exports = new UserRepository();
