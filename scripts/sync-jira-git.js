@@ -77,11 +77,18 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\n🔍 Récupération des informations Jira pour ${issueKey}...`);
-  const issue = await getIssue(issueKey);
-  const summary = issue.fields.summary;
-  const parentKey = issue.fields.parent ? issue.fields.parent.key : null;
-  console.log(`📋 Tâche trouvée : [${issueKey}] ${summary}`);
+  let summary = process.argv[3] || 'Mise à jour et implémentation';
+  let parentKey = null;
+
+  try {
+    console.log(`\n🔍 Récupération des informations Jira pour ${issueKey}...`);
+    const issue = await getIssue(issueKey);
+    summary = issue.fields.summary;
+    parentKey = issue.fields.parent ? issue.fields.parent.key : null;
+    console.log(`📋 Tâche trouvée : [${issueKey}] ${summary}`);
+  } catch (err) {
+    console.log(`⚠️ Jira inaccessible (${err.message}). Utilisation du titre par défaut.`);
+  }
 
   const statusOutput = execSync('git status --porcelain').toString().trim();
   if (statusOutput.length > 0) {
@@ -98,12 +105,12 @@ async function main() {
     console.log('\nℹ️ Aucun fichier modifié à commiter, mise à jour de Jira uniquement...');
   }
 
-  console.log(`\n🔄 Passage de ${issueKey} à l'état "Terminé" sur Jira...`);
   try {
+    console.log(`\n🔄 Passage de ${issueKey} à l'état "Terminé" sur Jira...`);
     await transitionIssue(issueKey, '31');
     console.log(`✅ ${issueKey} est maintenant marqué comme "Terminé" sur Jira !`);
   } catch (err) {
-    console.log(`⚠️ Transition ${issueKey} : ${err.message}`);
+    console.log(`⚠️ Transition Jira ${issueKey} : ${err.message}`);
   }
 
   if (parentKey) {
