@@ -27,7 +27,7 @@ const materialschema = new mongoose.Schema(
         alertThreshold:{
             type:Number,
             required:true,
-            min:10
+            min:0
         }
 
 },{

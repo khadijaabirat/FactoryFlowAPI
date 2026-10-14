@@ -11,6 +11,8 @@ return res.status(201).json({
 })
 });
 
+
+
 const getAllUsers= asyncHandler(async(req,res,next)=>{
 const users= await userService.getAllUsers();
 return res.status(200).json({
