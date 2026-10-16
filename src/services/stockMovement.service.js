@@ -2,7 +2,7 @@ const materialRepository = require("../repositories/material.repository");
 const stockMovementRepository = require("../repositories/stockMovement.repository");
 const AppError = require("../utils/AppError");
 
-class availableQuantity{
+class StockMovementService {
     async createMovement(movementData,userId){
         if(!movementData.materialId || !movementData.type || !movementData.quantity || !movementData.reason){
              throw new AppError('tous les champs sont obligatoires',400);
@@ -33,5 +33,12 @@ movementData.performedBy=userId;
 const mouvement= await stockMovementRepository.create(movementData);
 return mouvement;
 }
+
+async getAllMouvements(){
+    const mouvements= await stockMovementRepository.findAll();
+    return mouvements;
 }
-module.exports= new availableQuantity();
+
+
+}
+module.exports= new StockMovementService();

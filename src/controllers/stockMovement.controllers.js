@@ -12,6 +12,19 @@ return res.status(201).json({
 });
 });
 
+
+
+const getAllMouvements=asyncHandler(async(req,res,next)=>{
+const mouvements= await stockMovementService.getAllMouvements();
+return res.status(200).json({
+    success:true,
+    count:mouvements.length,
+    mouvements
+});
+});
+
+
 module.exports={
-    createMovement
+    createMovement,
+    getAllMouvements
 }

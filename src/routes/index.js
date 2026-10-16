@@ -4,7 +4,7 @@ const instalationRoutes=require('./instalation.routes');
 const authRoutes= require('../routes/auth.routes');
 const usersRoutes= require('../routes/user.routes');
 const materialRoutes= require('../routes/material.routes');
-const stockMovementRoutes= require('../routes/stackMovement');
+const stockMovementRoutes= require('./stockMovement');
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
