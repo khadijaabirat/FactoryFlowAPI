@@ -8,7 +8,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 const EMAIL = 'abiratkhadija@gmail.com';
-const TOKEN = 'ATATT3xFfGF0xYaV-yr5FMkCK_3vBJuwS0U4IuzaMdSOP-SbnIqKuhrTlAuzWB8pt-D06_4k0LJN-t1qDItqmMwPuAKj-Rga9cTVUSP9GjTbg7-b6hV72LMumVJR14mUglcE7bzez5rpBKmkE4095MSnoaqTfN3OuM3hfiG_Wkty9DtUj_XUfSs=24C01E68';
+const TOKEN = 'ATATT3xFfGF00pnk6pGwND_OAlI8DajQhQKylYUgIMSXgCvHGXhmFazYmNKEXEYXIzg8nVEkTNhqIDl_VdcD5iHQbka-zsXtX2Tr1JC5y-6_v4UB8hTzcqayCJKrGAUgfVwhicn4g4AuvlHtV6RyiLSbgJMqUiD0uo_tZI3GL07mGqHD01Zn5jY=E38E7457';
 const JIRA_DOMAIN = 'abiratkhadija-1788780331877.atlassian.net';
 const AUTH = Buffer.from(`${EMAIL}:${TOKEN}`).toString('base64');
 
