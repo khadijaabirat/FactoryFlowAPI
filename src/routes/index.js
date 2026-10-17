@@ -5,6 +5,8 @@ const authRoutes= require('../routes/auth.routes');
 const usersRoutes= require('../routes/user.routes');
 const materialRoutes= require('../routes/material.routes');
 const stockMovementRoutes= require('./stockMovement');
+const productRoutes= require('../routes/product.routes');
+
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -17,4 +19,5 @@ router.use('/auth',authRoutes);
 router.use('/users',usersRoutes);
 router.use('/materials',materialRoutes);
 router.use('/stock-movements',stockMovementRoutes);
+router.use('/products',productRoutes);
 module.exports = router;
