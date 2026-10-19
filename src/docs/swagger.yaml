@@ -1,0 +1,583 @@
+openapi: 3.0.3
+info:
+  title: FactoryFlow API
+  description: |
+    API industrielle sécurisée pour la gestion des ordres de fabrication multi-produits 
+    et des stocks de matières premières avec déduction atomique (ACID).
+    Projet d'évaluation technique - Usine de fabrication mécanique (Safi, Maroc).
+  version: 1.0.0
+  contact:
+    name: Khadija Abirat
+    email: abiratkhadija@gmail.com
+
+servers:
+  - url: http://localhost:5001/api
+    description: Serveur de Développement Local (Docker)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Message d'erreur descriptif"
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6ac913053e4db928ceb1c5c2"
+        name:
+          type: string
+          example: "Rachid El Amrani"
+        email:
+          type: string
+          example: "rachid@factoryflow.com"
+        role:
+          type: string
+          enum: [ADMIN, OPERATOR]
+          example: "OPERATOR"
+
+    Material:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6ad3bfc1a3fc09b4d9486390"
+        reference:
+          type: string
+          example: "MP-INOX-01"
+        name:
+          type: string
+          example: "Tôle Inox 316L"
+        unit:
+          type: string
+          example: "kg"
+        availableQuantity:
+          type: number
+          example: 150.5
+        alertThreshold:
+          type: number
+          example: 20
+
+    CompositionItem:
+      type: object
+      required:
+        - materialId
+        - quantity
+      properties:
+        materialId:
+          type: string
+          example: "6ad3bfc1a3fc09b4d9486390"
+        quantity:
+          type: number
+          example: 2.5
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6ad3bfc1a3fc09b4d9486394"
+        reference:
+          type: string
+          example: "PROD-VANN-50"
+        name:
+          type: string
+          example: "Vanne Industrielle 50mm Inox"
+        composition:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionItem'
+
+    OrderSnapshotItem:
+      type: object
+      properties:
+        materialId:
+          type: string
+          example: "6ad3bfc1a3fc09b4d9486390"
+        reference:
+          type: string
+          example: "MP-INOX-01"
+        name:
+          type: string
+          example: "Tôle Inox 316L"
+        unit:
+          type: string
+          example: "kg"
+        quantityPerUnit:
+          type: number
+          example: 2.5
+
+    OrderItem:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          example: "6ad3bfc1a3fc09b4d9486394"
+        quantity:
+          type: number
+          example: 10
+        snapshot:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderSnapshotItem'
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "6ad5f114336e276bd26dc542"
+        assignedTo:
+          type: string
+          example: "6acdf4e6276831175fccb829"
+        status:
+          type: string
+          enum: [PLANIFIE, EN_COURS, TERMINE, ANNULE]
+          example: "PLANIFIE"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+paths:
+  /installation:
+    get:
+      summary: Consulter le statut d'installation
+      tags: [Installation]
+      responses:
+        200:
+          description: Statut d'installation retourné
+    post:
+      summary: Installation initiale de l'application et création du premier Administrateur
+      tags: [Installation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: "Administrateur Système"
+                email:
+                  type: string
+                  example: "admin@factoryflow.com"
+                password:
+                  type: string
+                  example: "Password123!"
+      responses:
+        201:
+          description: Installation réussie
+        409:
+          description: Application déjà installée
+
+  /auth/login:
+    post:
+      summary: Authentification utilisateur et génération du token JWT
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: "admin@factoryflow.com"
+                password:
+                  type: string
+                  example: "Password123!"
+      responses:
+        200:
+          description: Connexion réussie avec token JWT
+        401:
+          description: Identifiants invalides
+
+  /auth/profile:
+    get:
+      summary: Consulter le profil de l'utilisateur connecté
+      tags: [Authentification]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Informations du profil utilisateur
+
+  /users:
+    get:
+      summary: Liste de tous les utilisateurs (Admin uniquement)
+      tags: [Utilisateurs]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Liste des utilisateurs
+    post:
+      summary: Créer un utilisateur (Admin uniquement)
+      tags: [Utilisateurs]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name:
+                  type: string
+                  example: "Rachid El Amrani"
+                email:
+                  type: string
+                  example: "rachid@factoryflow.com"
+                password:
+                  type: string
+                  example: "Password123!"
+                role:
+                  type: string
+                  enum: [ADMIN, OPERATOR]
+                  example: "OPERATOR"
+      responses:
+        201:
+          description: Utilisateur créé avec succès
+
+  /materials:
+    get:
+      summary: Liste des matières premières
+      tags: [Matières Premières]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Liste des matières
+    post:
+      summary: Ajouter une matière première (Admin uniquement)
+      tags: [Matières Premières]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference, name, unit]
+              properties:
+                reference:
+                  type: string
+                  example: "MP-JOINT-01"
+                name:
+                  type: string
+                  example: "Joint Torique 50mm"
+                unit:
+                  type: string
+                  example: "pièce"
+                availableQuantity:
+                  type: number
+                  example: 100
+                alertThreshold:
+                  type: number
+                  example: 15
+      responses:
+        201:
+          description: Matière créée avec succès
+
+  /materials/alerts/low-stock:
+    get:
+      summary: Liste des matières premières en rupture ou stock bas
+      tags: [Matières Premières]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Matières avec quantité <= seuil d'alerte
+
+  /stock-movements:
+    get:
+      summary: Historique d'audit des mouvements de stock
+      tags: [Mouvements de Stock]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Liste des mouvements avec traçabilité
+    post:
+      summary: Déclarer une entrée ou sortie manuelle de stock
+      tags: [Mouvements de Stock]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [materialId, type, quantity, reason]
+              properties:
+                materialId:
+                  type: string
+                type:
+                  type: string
+                  enum: [IN, OUT]
+                quantity:
+                  type: number
+                reason:
+                  type: string
+      responses:
+        201:
+          description: Mouvement enregistré
+
+  /products:
+    get:
+      summary: Liste des produits finis avec leur recette BOM
+      tags: [Produits & BOM]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Liste des produits
+    post:
+      summary: Créer un produit avec composition (Admin uniquement)
+      tags: [Produits & BOM]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference, name]
+              properties:
+                reference:
+                  type: string
+                  example: "PROD-VANN-50"
+                name:
+                  type: string
+                  example: "Vanne Industrielle 50mm Inox"
+                composition:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CompositionItem'
+      responses:
+        201:
+          description: Produit créé avec succès
+
+  /products/{id}/bom:
+    post:
+      summary: Mettre à jour la nomenclature (BOM) d'un produit (Admin uniquement)
+      tags: [Produits & BOM]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CompositionItem'
+      responses:
+        200:
+          description: Recette mise à jour avec succès
+
+  /orders:
+    get:
+      summary: Liste globale des ordres de fabrication avec filtres
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PLANIFIE, EN_COURS, TERMINE, ANNULE]
+        - name: assignedTo
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Liste des ordres filtrés
+    post:
+      summary: Créer un ordre de fabrication multi-produits avec snapshot figé
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignedTo, items]
+              properties:
+                assignedTo:
+                  type: string
+                  example: "6acdf4e6276831175fccb829"
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: number
+      responses:
+        201:
+          description: Ordre créé avec succès avec recette figée
+
+  /orders/my-orders:
+    get:
+      summary: Consulter les ordres assignés à l'opérateur connecté
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Ordres assignés à l'utilisateur connecté
+
+  /orders/{id}:
+    get:
+      summary: Détails d'un ordre de fabrication
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Détails de l'ordre
+    put:
+      summary: Modifier un ordre (autorisé uniquement si statut PLANIFIE)
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignedTo:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: number
+      responses:
+        200:
+          description: Ordre modifié avec succès
+        400:
+          description: Impossible de modifier un ordre non-planifié
+
+  /orders/{id}/start:
+    post:
+      summary: Démarrer un ordre avec déduction atomique des stocks (Transaction ACID)
+      description: |
+        Vérifie la disponibilité de toutes les matières requises pour tous les produits.
+        Si le stock est suffisant, déduit les quantités atomiquement dans une session MongoDB,
+        génère les mouvements de stock OUT et passe l'ordre au statut EN_COURS avec startedAt.
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Ordre démarré avec succès et stock déduit
+        400:
+          description: Stock insuffisant ou ordre déjà démarré
+
+  /orders/{id}/finish:
+    post:
+      summary: Clôturer un ordre de fabrication terminé
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Ordre terminé avec succès et horodatage endedAt
+        400:
+          description: Impossible de terminer un ordre non en cours
+
+  /orders/{id}/cancel:
+    post:
+      summary: Annuler un ordre (autorisé uniquement si statut PLANIFIE)
+      tags: [Ordres de Fabrication]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Ordre annulé avec succès
+        400:
+          description: Impossible d'annuler un ordre démarré ou terminé
