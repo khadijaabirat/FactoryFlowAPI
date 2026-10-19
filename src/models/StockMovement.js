@@ -23,7 +23,7 @@ reason:{
 },
 orderId:{
     type:mongoose.Schema.Types.ObjectId,
-    ref:'ManufacturingOrder',
+    ref:'Order',
     default:null
 },
 performedBy:{
