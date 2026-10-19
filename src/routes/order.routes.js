@@ -6,6 +6,12 @@ const { authenticate, authorise } = require("../middlewares/auth.middleware");
 // Route pour l'opérateur connecté (AVANT /:id)
 router.get("/my-orders", authenticate, orderController.getMyOrders);
 
+// Routes de gestion du cycle de vie des ordres
+router.post("/:id/start", authenticate, orderController.startOrder);
+router.patch("/:id/start", authenticate, orderController.startOrder);
+router.post("/:id/finish", authenticate, orderController.finishOrder);
+router.patch("/:id/finish", authenticate, orderController.finishOrder);
+
 // Routes d'administration des ordres
 router.post("/", authenticate, authorise("ADMIN"), orderController.createOrder);
 router.get("/", authenticate, authorise("ADMIN"), orderController.getAllOrders);

@@ -12,9 +12,10 @@ async findAll(){
         return Materials;
     }
 
-async findById(id){
-        const material = await Material.findById(id);
-        return material;
+async findById(id, session = null){
+        let query = Material.findById(id);
+        if (session) query = query.session(session);
+        return await query;
     }
 
 
@@ -24,12 +25,11 @@ async findByReference(reference){
 }
 
 
-async update(id,updateData){
-    const material= await Material.findByIdAndUpdate(id,updateData,{
-        new:true,
-        runValidators:true
-    });
-   return material;
+async update(id, updateData, session = null){
+    const options = { new: true, runValidators: true };
+    if (session) options.session = session;
+    const material = await Material.findByIdAndUpdate(id, updateData, options);
+    return material;
 }
 
 

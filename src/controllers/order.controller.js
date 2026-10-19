@@ -67,6 +67,25 @@ const deleteOrder = asyncHandler(async (req, res, next) => {
     });
 });
 
+const startOrder = asyncHandler(async (req, res, next) => {
+    const operatorId = req.user.id || req.user._id;
+    const order = await orderService.startOrder(req.params.id, operatorId);
+    return res.status(200).json({
+        success: true,
+        message: "ordre démarré avec succès",
+        order
+    });
+});
+
+const finishOrder = asyncHandler(async (req, res, next) => {
+    const order = await orderService.finishOrder(req.params.id);
+    return res.status(200).json({
+        success: true,
+        message: "ordre terminé avec succès",
+        order
+    });
+});
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -74,5 +93,7 @@ module.exports = {
     getMyOrders,
     updateOrder,
     cancelOrder,
-    deleteOrder
+    deleteOrder,
+    startOrder,
+    finishOrder
 };
