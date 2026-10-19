@@ -7,9 +7,7 @@ const stockMovementRepository = require("../repositories/stockMovement.repositor
 const AppError = require("../utils/AppError");
 
 class OrderService {
-    /**
-     * Récupère la recette figée (snapshot) pour chaque produit
-     */
+    // recuperer la recette (snapshot) pour chaque produit
     async ItemsSnapshot(items) {
         if (!Array.isArray(items) || items.length === 0) {
             throw new AppError("La liste des items est obligatoire et ne doit pas être vide", 400);
@@ -68,9 +66,7 @@ class OrderService {
         return pItems;
     }
 
-    /**
-     * FA-57: Création d'un ordre
-     */
+    // creation d'un ordre
     async createOrder(orderData) {
         if (!orderData.assignedTo) {
             throw new AppError("l'assignation à un utilisateur est obligatoire", 400);
@@ -93,17 +89,13 @@ class OrderService {
         return order;
     }
 
-    /**
-     * FA-59: Liste des ordres avec filtres
-     */
+    // lister tous les ordres
     async getAllOrders(filter = {}) {
         const orders = await orderRepository.findAll(filter);
         return orders;
     }
 
-    /**
-     * Détail d'un ordre
-     */
+    // get ordre by id
     async getOrderById(id) {
         const order = await orderRepository.findById(id);
         if (!order) {
@@ -112,17 +104,13 @@ class OrderService {
         return order;
     }
 
-    /**
-     * Ordres de l'opérateur connecté
-     */
+    // ordres de l'operateur connecte
     async getMyOrders(operatorId) {
         const orders = await orderRepository.findByOperator(operatorId);
         return orders;
     }
 
-    /**
-     * FA-58: Modifier un ordre (uniquement si PLANIFIE)
-     */
+    // modifier un ordre (si planifie)
     async updateOrder(id, updateData) {
         const order = await orderRepository.findById(id);
         if (!order) {
@@ -151,9 +139,7 @@ class OrderService {
         return updatedOrder;
     }
 
-    /**
-     * FA-58: Annuler un ordre (uniquement si PLANIFIE)
-     */
+    // annuler un ordre
     async AnnulerOrder(id) {
         const order = await orderRepository.findById(id);
         if (!order) {
@@ -168,14 +154,11 @@ class OrderService {
         return annulerOrder;
     }
 
-    // Alias pour compatibilité
     async cancelOrder(id) {
         return await this.AnnulerOrder(id);
     }
 
-    /**
-     * Supprimer un ordre (uniquement si PLANIFIE ou ANNULE)
-     */
+    // supprimer un ordre
     async deleteOrder(id) {
         const order = await orderRepository.findById(id);
         if (!order) {
@@ -189,22 +172,19 @@ class OrderService {
         return await orderRepository.delete(id);
     }
 
-    /**
-     * FA-60: Démarrage d'ordre et déduction atomique de stock (ACID)
-     */
+    // demarrer l'ordre et deduire le stock
     async startOrder(id, performedBy) {
-        // 1. Récupérer l'ordre
         const order = await orderRepository.findById(id);
         if (!order) {
             throw new AppError("ordre introuvable", 404);
         }
 
-        // FA-64: Vérifier que l'ordre est au statut PLANIFIE
+        // verifier que l ordre est planifie
         if (order.status !== "PLANIFIE") {
             throw new AppError("l'ordre n'est pas au statut planifié ou déjà démarré", 400);
         }
 
-        // FA-61: Calculer le total des besoins en matières pour tous les items
+        // calculer les besoins totaux de chaque matiere
         const totalBesoins = {};
 
         for (const item of order.items) {
@@ -224,7 +204,7 @@ class OrderService {
             }
         }
 
-        // FA-62: Vérifier le stock disponible AVANT de modifier quoi que ce soit
+        // verifier si le stock est suffisant
         for (const matId of Object.keys(totalBesoins)) {
             const besoin = totalBesoins[matId];
             const material = await materialRepository.findById(besoin.materialId);
@@ -241,21 +221,18 @@ class OrderService {
             }
         }
 
-        // FA-63: Déduction atomique avec transaction ACID MongoDB
+        // transaction mongo pour la deduction atomique
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            // Pour chaque matière : déduire le stock et enregistrer le mouvement OUT
             for (const matId of Object.keys(totalBesoins)) {
                 const besoin = totalBesoins[matId];
                 const material = await materialRepository.findById(besoin.materialId, session);
 
-                // Déduction du stock
                 const nouvelleQuantite = material.availableQuantity - besoin.quantiteTotale;
                 await materialRepository.update(material._id, { availableQuantity: nouvelleQuantite }, session);
 
-                // Mouvement de stock OUT
                 await stockMovementRepository.create({
                     materialId: material._id,
                     type: "OUT",
@@ -266,17 +243,14 @@ class OrderService {
                 }, session);
             }
 
-            // Mettre à jour l'ordre : statut EN_COURS et startedAt
             const updatedOrder = await orderRepository.update(id, {
                 status: "EN_COURS",
                 startedAt: new Date()
             }, session);
 
-            // Valider la transaction ACID
             await session.commitTransaction();
             return updatedOrder;
         } catch (error) {
-            // En cas d'erreur : annuler tout (Rollback)
             await session.abortTransaction();
             throw error;
         } finally {
@@ -284,9 +258,7 @@ class OrderService {
         }
     }
 
-    /**
-     * FA-67: Clôture de l'ordre (passage à TERMINE et endedAt)
-     */
+    // terminer un ordre
     async finishOrder(id) {
         const order = await orderRepository.findById(id);
         if (!order) {

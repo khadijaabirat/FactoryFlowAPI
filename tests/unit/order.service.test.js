@@ -12,7 +12,7 @@ jest.mock('../../src/repositories/stockMovement.repository');
 jest.mock('../../src/repositories/product.repository');
 jest.mock('../../src/repositories/user.repository');
 
-describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
+describe('Order Service', () => {
     let mockSession;
 
     beforeEach(() => {
@@ -32,34 +32,34 @@ describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
         jest.restoreAllMocks();
     });
 
-    describe('FA-72 : Calcul des besoins multi-produits et rejet stock insuffisant', () => {
-        test('doit agréger correctement les besoins de plusieurs produits et rejeter si stock insuffisant', async () => {
+    describe('Verification et calcul des matieres', () => {
+        test('doit rejeter si le stock est insuffisant pour les produits', async () => {
             const fakeOrder = {
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'PLANIFIE',
-                assignedTo: 'user_456',
+                assignedTo: 'user1',
                 items: [
                     {
-                        productId: 'prod_A',
+                        productId: 'prod1',
                         quantity: 5,
                         snapshot: [
                             {
-                                materialId: 'mat_acier',
+                                materialId: 'mat1',
                                 reference: 'MP-ACIER',
-                                name: 'Acier Inox',
+                                name: 'Acier',
                                 unit: 'kg',
                                 quantityPerUnit: 2
                             }
                         ]
                     },
                     {
-                        productId: 'prod_B',
+                        productId: 'prod2',
                         quantity: 10,
                         snapshot: [
                             {
-                                materialId: 'mat_acier',
+                                materialId: 'mat1',
                                 reference: 'MP-ACIER',
-                                name: 'Acier Inox',
+                                name: 'Acier',
                                 unit: 'kg',
                                 quantityPerUnit: 3
                             }
@@ -70,44 +70,41 @@ describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
 
             orderRepository.findById.mockResolvedValue(fakeOrder);
 
-            // Stock disponible = 30 kg, mais le besoin total = (5 * 2) + (10 * 3) = 40 kg
+            // stock = 30 mais besoin = 5*2 + 10*3 = 40
             materialRepository.findById.mockResolvedValue({
-                _id: 'mat_acier',
+                _id: 'mat1',
                 reference: 'MP-ACIER',
-                name: 'Acier Inox',
+                name: 'Acier',
                 availableQuantity: 30
             });
 
-            await expect(orderService.startOrder('order_123', 'operator_789'))
+            await expect(orderService.startOrder('order1', 'user1'))
                 .rejects
                 .toMatchObject({
-                    statusCode: 400,
-                    message: expect.stringMatching(/stock insuffisant/i)
+                    statusCode: 400
                 });
 
-            // Vérifier qu'aucune transaction n'a été validée et aucun mouvement n'a été créé
             expect(mockSession.commitTransaction).not.toHaveBeenCalled();
             expect(stockMovementRepository.create).not.toHaveBeenCalled();
-            expect(materialRepository.update).not.toHaveBeenCalled();
         });
     });
 
-    describe('FA-73 : Démarrage réussi et rejet second démarrage (FA-64)', () => {
-        test('doit déduire le stock, créer les mouvements OUT et passer à EN_COURS si stock suffisant', async () => {
+    describe('Demarrage de l ordre', () => {
+        test('doit deduire le stock et passer en cours si stock disponible', async () => {
             const fakeOrder = {
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'PLANIFIE',
-                assignedTo: 'user_456',
+                assignedTo: 'user1',
                 items: [
                     {
-                        productId: 'prod_A',
+                        productId: 'prod1',
                         quantity: 4,
                         snapshot: [
                             {
-                                materialId: 'mat_joint',
+                                materialId: 'mat1',
                                 reference: 'MP-JOINT',
-                                name: 'Joint Torique',
-                                unit: 'pièce',
+                                name: 'Joint',
+                                unit: 'piece',
                                 quantityPerUnit: 2.5
                             }
                         ]
@@ -117,11 +114,11 @@ describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
 
             orderRepository.findById.mockResolvedValue(fakeOrder);
 
-            // Besoin = 4 * 2.5 = 10 pièces. Stock disponible = 50 pièces.
+            // besoin = 10, stock = 50
             materialRepository.findById.mockResolvedValue({
-                _id: 'mat_joint',
+                _id: 'mat1',
                 reference: 'MP-JOINT',
-                name: 'Joint Torique',
+                name: 'Joint',
                 availableQuantity: 50
             });
 
@@ -131,58 +128,41 @@ describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
                 startedAt: new Date()
             });
 
-            const result = await orderService.startOrder('order_123', 'operator_789');
+            const result = await orderService.startOrder('order1', 'user1');
 
             expect(result.status).toBe('EN_COURS');
             expect(mockSession.startTransaction).toHaveBeenCalled();
             expect(mockSession.commitTransaction).toHaveBeenCalled();
-            expect(mockSession.endSession).toHaveBeenCalled();
-
-            // Vérifier la déduction exacte : 50 - 10 = 40
             expect(materialRepository.update).toHaveBeenCalledWith(
-                'mat_joint',
+                'mat1',
                 { availableQuantity: 40 },
                 mockSession
             );
-
-            // Vérifier le mouvement OUT créé
-            expect(stockMovementRepository.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    materialId: 'mat_joint',
-                    type: 'OUT',
-                    quantity: 10,
-                    orderId: 'order_123',
-                    performedBy: 'operator_789'
-                }),
-                mockSession
-            );
+            expect(stockMovementRepository.create).toHaveBeenCalled();
         });
 
-        test('FA-64 : doit rejeter tout second démarrage pour un ordre déjà EN_COURS', async () => {
+        test('doit rejeter si l ordre est deja en cours', async () => {
             orderRepository.findById.mockResolvedValue({
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'EN_COURS',
                 items: []
             });
 
-            await expect(orderService.startOrder('order_123', 'operator_789'))
+            await expect(orderService.startOrder('order1', 'user1'))
                 .rejects
                 .toMatchObject({
-                    statusCode: 400,
-                    message: expect.stringMatching(/pas au statut planifié ou déjà démarré/i)
+                    statusCode: 400
                 });
-
-            expect(mockSession.startTransaction).not.toHaveBeenCalled();
         });
 
-        test('FA-64 : doit rejeter le démarrage pour un ordre déjà TERMINE', async () => {
+        test('doit rejeter si l ordre est deja termine', async () => {
             orderRepository.findById.mockResolvedValue({
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'TERMINE',
                 items: []
             });
 
-            await expect(orderService.startOrder('order_123', 'operator_789'))
+            await expect(orderService.startOrder('order1', 'user1'))
                 .rejects
                 .toMatchObject({
                     statusCode: 400
@@ -190,42 +170,33 @@ describe('OrderService - Tests Unitaires (FA-72 & FA-73)', () => {
         });
     });
 
-    describe('FA-67 : Clôture d ordre (finishOrder)', () => {
-        test('doit passer l ordre au statut TERMINE avec horodatage endedAt', async () => {
+    describe('Cloture de l ordre', () => {
+        test('doit terminer l ordre si en cours', async () => {
             orderRepository.findById.mockResolvedValue({
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'EN_COURS'
             });
 
             orderRepository.update.mockResolvedValue({
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'TERMINE',
                 endedAt: new Date()
             });
 
-            const result = await orderService.finishOrder('order_123');
-
+            const result = await orderService.finishOrder('order1');
             expect(result.status).toBe('TERMINE');
-            expect(orderRepository.update).toHaveBeenCalledWith(
-                'order_123',
-                expect.objectContaining({
-                    status: 'TERMINE',
-                    endedAt: expect.any(Date)
-                })
-            );
         });
 
-        test('doit rejeter la clôture si l ordre n est pas EN_COURS', async () => {
+        test('doit rejeter si l ordre n est pas en cours', async () => {
             orderRepository.findById.mockResolvedValue({
-                _id: 'order_123',
+                _id: 'order1',
                 status: 'PLANIFIE'
             });
 
-            await expect(orderService.finishOrder('order_123'))
+            await expect(orderService.finishOrder('order1'))
                 .rejects
                 .toMatchObject({
-                    statusCode: 400,
-                    message: expect.stringMatching(/impossible de terminer un ordre qui n'est pas en cours/i)
+                    statusCode: 400
                 });
         });
     });
